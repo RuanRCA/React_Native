@@ -1,151 +1,77 @@
-import { useEffect , useState} from 'react';
-import { StyleSheet, Text, View , TouchableOpacity , TextInput , FlatList } from 'react-native';
-import {db} from './src/Firebase.Connections';
-import {doc , getDocs , getDoc  , onSnapshot , setDoc , collection , addDoc} from 'firebase/firestore'
-import { UsersList } from './src/Users';
+import {useState} from 'react'
+import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import {auth} from './src/Firebase.Connections'
+import { FormUser } from './src/formUser';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth/cordova';
+
 
 export default function App() {
-  const[nome , setNome ] = useState();
-  const [idade , setIdade] = useState();
-  const [cargo , setCargo] = useState();
-  const [showForm, setshowForm] = useState(true);
-  const [users,setUsers]= useState([]);
+  const [email , setEmail] = useState("");
+  const [password , setPassword] = useState("");
+  const [authUser , setAuthUser] = useState(null)
 
-  useEffect(()=>{
-    async function getDados() {
-      // const docref = doc(db,"Users" , "2")
-      // await getDoc(docref)
-      // .then((snapshot)=>{
-      //  console.log(snapshot.data())
-      //  setnome(snapshot.data()?.Nome)
-      // })
-      // .catch((err)=>{
-      //   console.log('error: ')
-      //   console.log(err)
-      // })
-      // onSnapshot(doc(db , "Users" , "2") , (doc)=>{
-      //   setnome(doc.data()?.Nome)
-      // })
-      const usersRef = collection(db , "Users");
+  async function handleCreateUser (){
+  const user =   await createUserWithEmailAndPassword(auth , email, password)
+    console.log(user)
+    setEmail("")
+    setPassword("")
+    alert("usuario criado")
+  }
 
-      onSnapshot(usersRef ,(snapshot)=>{
-        let lista = [];
-        snapshot.forEach((doc)=>{
-          lista.push({
-            id: doc.id,
-            nome:doc.data().Nome,
-            idade:doc.data().Idade,
-            cargo:doc.data().Cargo
-          })
-        })
-        //console.log(lista);
-        setUsers(lista)
+  function handleLogin(){
+     signInWithEmailAndPassword(auth , email, password)
+     .then((user)=>{
+      console.log(user);
+
+      setAuthUser({
+        email: user.user.email,
+        uid:user.user.uid
       })
-    }
-    getDados();
-  },[])
-
-  async function handlerRegister() {
-
-    if (nome=="" || idade== "" || cargo== ""){
-      alert("Preencha os Campos");
-      setNome("");
-      setIdade("");
-      setCargo("");
-      return;
-    }
-
-    
-    // await setDoc(doc(db,"Users" , "4"),{
-    //   nome:"Catarina",
-    //   idade:"26",
-    //   cargo:"Front-End",
-    // })
-    // .then(()=>{
-    //   console.log("Cadastro com sucesso")
-    // })
-    // .catch((err)=>{
-    //   console.log(err)
-    // })
-    await addDoc(collection (db,"Users" ),{
-      Cargo:cargo,
-      Idade:idade,
-      Nome:nome,
-      
+      setEmail("")
+      setPassword("")
      })
-    // .then(()=>{
-    //     console.log("Cadastro com sucesso")
-    //   })
-    //   .catch((err)=>{
-    //     console.log(err)
-    //   })
-   setNome("");
-   setIdade("");
-   setCargo("");
-  }
 
-  function handleToggle(){
-    setshowForm(!showForm);
-  }
+   .catch((err)=>{
+    console.log(err.code)
+    if(err.code === 'auth/missing-password'){
+      alert("A senha é obrigatória")
+    }
+     })
 
+
+  }
   return (
-
     <View style={styles.container}>
+      {/* <FormUser></FormUser> */}
 
-      {showForm &&(
+      <Text>usuario Logado:{authUser && authUser.email}</Text>
 
-<View>
-<Text style={styles.label}>Nome:</Text>
-  <TextInput
-  style={styles.Input}
-  placeholder='Digite Seu Nome'
-  value={nome}
-  onChangeText={(text)=>setNome(text)}
-  />
+      <Text style={styles.txtInput}>E-mail:</Text>
+      <TextInput
+        style={styles.input}
+        placeholder='Digite seu E-mail'
+        value={email}
+        onChangeText={(text)=>setEmail(text)}
+      ></TextInput>
 
-  <Text style={styles.label}>Idade:</Text>
+      <Text style={styles.txtInput}>Senha:</Text>
+      <TextInput
+        style={styles.input}
+        placeholder='Digite sua Senha'
+        value={password}
+        onChangeText={(text)=>setPassword(text)}
+        secureTextEntry={true}
+      ></TextInput>
 
-<TextInput
-  style={styles.Input}
-  placeholder='Digite Sua Idade'
-  value={idade}
-  onChangeText={(text)=>setIdade(text)}
-  />
-
-<Text style={styles.label}>Cargo:</Text>
-
-<TextInput
-  style={styles.Input}
-  placeholder='Digite Seu Cargo'
-  value={cargo}
-  onChangeText={(text)=>setCargo(text)}
-  />
-
-  <TouchableOpacity style={styles.button} onPress={handlerRegister}>
-    <Text style={styles.buttonText}>Cadastrar</Text>
-  </TouchableOpacity>
-  </View>
-      )}
-
-
-  
-      {/* <Text>Nome: {nome}</Text> */}
-
-      
-  
-      <TouchableOpacity style={styles.button} onPress={handleToggle}>
-        <Text style={styles.buttonText}>{showForm?"Escoder Formulario" : "Mostrar Formulario"}</Text>
+      <TouchableOpacity style={styles.button} onPress={handleCreateUser}>
+        <Text style={styles.buttonTxt}>Criar uma conta</Text>
       </TouchableOpacity>
 
-      <FlatList style={styles.lista}
-      data={users}
-      keyExtractor={(item)=> String(item.id)}
-      renderItem={({item})=><UsersList data={item}/>}
-      />
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonTxt}>Fazer Login</Text>
+      </TouchableOpacity>
 
-
-  
-      
     </View>
   );
 }
@@ -153,42 +79,42 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop:50,
+    paddingTop: 50
   },
 
-  button:{
-  backgroundColor:"#000",
-  alignItems:'center',
-  marginTop:20,
-  borderRadius:8,
-  marginLeft:10,
-  marginRight:10
+  input: {
+    marginLeft: 10,
+    marginRight: 10,
+     borderWidth: 2,
+    padding: 15,
+    margin:8,
+    borderColor:'#000',
+    // elevation: 3,
+    // shadowColor: '#000',
+  
+     borderRadius: 10,
   },
 
-  buttonText:{
-    padding:15,
-    color:'#fff',
-    fontWeight:'bold',
-    fontSize:18
+  txtInput: {
+    fontSize: 18,
+    color: '#000',
+    marginLeft: 10,
+    fontWeight: 'bold',
   },
-  label:{
-    color:"#000",
-    marginBottom:4,
-    fontSize:18,
-    marginLeft:10,
+
+  button: {
+    backgroundColor: '#000',
+    marginRight: 5,
+    marginLeft: 5,
+    padding: 10,
+    marginTop: 20,
+    borderRadius: 10,
+
+  },
+
+  buttonTxt: {
+    color: '#fff',
+    textAlign: 'center',
     fontWeight:'bold'
-
-  },
-  Input:{
-    borderWidth:2,
-    marginBottom:20,
-    marginLeft:10,
-    marginRight:10,
-  },
-
-  lista:{
-   marginLeft:10,
-   marginRight:10,
-   marginTop:10
   }
-});
+})
